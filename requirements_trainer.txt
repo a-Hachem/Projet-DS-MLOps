@@ -1,0 +1,14 @@
+tensorflow==2.12.0
+tf-keras
+numpy
+pandas
+Pillow
+scikit-learn
+transformers
+
+
+
+
+
+
+

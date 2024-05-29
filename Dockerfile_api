@@ -1,0 +1,27 @@
+# ===> Utilisation d'une image officielle
+FROM python:3.8-slim
+
+# ===> Répertoire de travail dans le conteneur
+WORKDIR /app/
+
+# ===> Des répertoires: pour enrégistrer le modèle (modelSaved) et les logs (non utilisé)
+
+RUN mkdir -p /app/logs
+RUN mkdir -p /app/modelSaved
+
+# ===> Copie des scripts de fichiers de la machine locale vers le répertoire de travail du container
+
+ADD main.py /app/main.py
+ADD requirements_api.txt /app/requirements_api.txt
+
+# ===> Installation de python dans le container ainsi que les librairies nécessaires
+
+RUN pip install --no-cache-dir --default-timeout=300 -r requirements_api.txt
+# RUN for i in 1 2 3; do pip install --no-cache-dir -r requirements_api.txt && break || sleep 15; done
+RUN pip install python-multipart bcrypt
+
+# Make port 8085 available to the world outside this container
+EXPOSE 8085
+
+# Run app.py when the container launches
+CMD ["uvicorn", "main:api", "--host", "0.0.0.0", "--port", "8085"]
