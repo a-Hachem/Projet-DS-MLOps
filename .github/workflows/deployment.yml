@@ -1,1 +1,47 @@
+name: Synchronization
+on:
+  push:
+    branches:
+      - main
 
+jobs:
+  synchronizing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build and Push Trainer Docker Image
+        run: |
+          echo "${{ secrets.DOCKER_PWD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker build -t dec23ecommerce/e-commerce_dec23_image_prediction_trainer:latest -f Dockerfile_trainer .
+          docker push dec23ecommerce/e-commerce_dec23_image_prediction_trainer:latest
+
+      - name: Build and Push API Docker Image
+        run: |
+          echo "${{ secrets.DOCKER_PWD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker build -t dec23ecommerce/e-commerce_dec23_image_prediction_api:latest -f Dockerfile_api .
+          docker push dec23ecommerce/e-commerce_dec23_image_prediction_api:latest
+
+      - name: Continuous Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.KEY_NAME }}  
+          key: ${{ secrets.KEY_VALUE }}         
+          port: ${{ secrets.PORT }}
+          script: |
+            echo "${{ secrets.DOCKER_PWD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+            docker container stop e-commerce_dec23_container_prediction_trainer
+            docker container rm e-commerce_dec23_container_prediction_trainer
+            docker pull dec23ecommerce/e-commerce_dec23_image_prediction_trainer:latest
+            docker run --name e-commerce_dec23_container_prediction_trainer -d dec23ecommerce/e-commerce_dec23_image_prediction_trainer:latest
+
+            sleep 3
+
+            docker container stop e-commerce_dec23_container_prediction_api
+            docker container rm e-commerce_dec23_container_prediction_api
+            docker pull dec23ecommerce/e-commerce_dec23_image_prediction_api:latest
+            docker run --name e-commerce_dec23_container_prediction_api -d -p 8085:8085 dec23ecommerce/e-commerce_dec23_image_prediction_api:latest
